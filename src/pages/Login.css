@@ -203,3 +203,22 @@
     border-radius: 50%;
     animation: spin 0.8s linear infinite;
 }
+
+.login-options {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 1.25rem;
+    font-size: 0.9rem;
+}
+
+.login-link {
+    color: var(--primary);
+    text-decoration: none;
+    font-weight: 500;
+    transition: opacity 0.2s ease;
+}
+
+.login-link:hover {
+    opacity: 0.8;
+    text-decoration: underline;
+}

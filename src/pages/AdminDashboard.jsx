@@ -1,18 +1,21 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { LogOut, Upload, Book, FileText, Bookmark, Search, Users, Settings, Clock, Calendar, User } from 'lucide-react';
+import { LogOut, Upload, Book, FileText, Bookmark, Search, Users, Settings, Clock, Calendar, User, AlertTriangle, CheckCircle, MessageSquare, Star, X, Calculator, Monitor, Zap, Compass, Globe } from 'lucide-react';
 import { useResourceContext } from '../context/ResourceContext';
 import './AdminDashboard.css';
 
 const AdminDashboard = () => {
     const navigate = useNavigate();
-    const { resources, addResource } = useResourceContext();
-    const [activeTab, setActiveTab] = useState('resources'); // resources, upload, users
+    const { resources, addResource, complaints, resolveComplaint } = useResourceContext();
+    const [activeTab, setActiveTab] = useState('resources'); // resources, upload, borrowed, users, complaints
 
     // Upload State
     const [title, setTitle] = useState('');
     const [description, setDescription] = useState('');
-    const [category, setCategory] = useState('Textbook');
+    const [category, setCategory] = useState('Computer Science');
+
+    // Admin Feedback Modal State
+    const [viewingFeedbackFor, setViewingFeedbackFor] = useState(null);
 
     const handleLogout = () => {
         navigate('/login');
@@ -44,14 +47,19 @@ const AdminDashboard = () => {
 
     const getCategoryIcon = (cat) => {
         switch (cat) {
-            case 'Textbook': return <Book size={18} />;
-            case 'Research Paper': return <FileText size={18} />;
-            case 'Study Guide': return <Bookmark size={18} />;
-            default: return <FileText size={18} />;
+            case 'Mathematics': return <Calculator size={18} />;
+            case 'Computer Science': return <Monitor size={18} />;
+            case 'Physics': return <Compass size={18} />;
+            case 'Mechanical Engineering': return <Settings size={18} />;
+            case 'Electronics': return <Zap size={18} />;
+            case 'History': return <Globe size={18} />;
+            default: return <Book size={18} />;
         }
     };
 
     const borrowedResources = resources.filter(res => res.status === 'Borrowed');
+
+    const openComplaintsBadge = complaints.filter(c => c.status === 'Open').length;
 
     return (
         <div className="dashboard-container">
@@ -90,6 +98,21 @@ const AdminDashboard = () => {
                         <Users size={20} />
                         <span>Manage Users</span>
                     </button>
+                    <button
+                        className={`nav-item ${activeTab === 'complaints' ? 'active' : ''}`}
+                        onClick={() => setActiveTab('complaints')}
+                        style={{ justifyContent: 'space-between' }}
+                    >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                            <AlertTriangle size={20} color={openComplaintsBadge > 0 ? 'var(--accent)' : 'currentColor'} />
+                            <span>Complaints</span>
+                        </div>
+                        {openComplaintsBadge > 0 && (
+                            <span className="badge" style={{ backgroundColor: 'var(--accent)', color: 'white', padding: '0.1rem 0.4rem', borderRadius: '1rem', fontSize: '0.75rem' }}>
+                                {openComplaintsBadge}
+                            </span>
+                        )}
+                    </button>
                 </nav>
 
                 <div className="sidebar-footer">
@@ -106,7 +129,8 @@ const AdminDashboard = () => {
                     <h1>
                         {activeTab === 'resources' ? 'Resource Library' :
                             activeTab === 'upload' ? 'Upload Resource' :
-                                activeTab === 'borrowed' ? 'Borrowed Books' : 'User Management'}
+                                activeTab === 'borrowed' ? 'Borrowed Books' :
+                                    activeTab === 'complaints' ? 'User Complaints' : 'User Management'}
                     </h1>
                     <div className="header-actions">
                         <div className="search-bar">
@@ -136,6 +160,13 @@ const AdminDashboard = () => {
                                         <span className="downloads">{resource.downloads} Downloads</span>
                                     </div>
                                     <div className="card-actions">
+                                        <button
+                                            className="btn btn-outline btn-sm"
+                                            onClick={() => setViewingFeedbackFor(resource)}
+                                            style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}
+                                        >
+                                            <MessageSquare size={14} /> View Feedback ({resource.feedback ? resource.feedback.length : 0})
+                                        </button>
                                         <button className="btn btn-outline btn-sm">Edit</button>
                                         <button className="btn btn-danger btn-sm">Delete</button>
                                     </div>
@@ -168,9 +199,12 @@ const AdminDashboard = () => {
                                         value={category}
                                         onChange={(e) => setCategory(e.target.value)}
                                     >
-                                        <option value="Textbook">Textbook</option>
-                                        <option value="Research Paper">Research Paper</option>
-                                        <option value="Study Guide">Study Guide</option>
+                                        <option value="Mathematics">Mathematics</option>
+                                        <option value="Computer Science">Computer Science</option>
+                                        <option value="Physics">Physics</option>
+                                        <option value="Mechanical Engineering">Mechanical Engineering</option>
+                                        <option value="Electronics">Electronics</option>
+                                        <option value="History">History</option>
                                     </select>
                                 </div>
 
@@ -267,8 +301,107 @@ const AdminDashboard = () => {
                         </div>
                     )}
 
+                    {/* Complaints Tab */}
+                    {activeTab === 'complaints' && (
+                        <div className="complaints-view">
+                            {complaints.length > 0 ? (
+                                <div className="complaints-list">
+                                    {complaints.map(complaint => (
+                                        <div key={complaint.id} className={`complaint-card card ${complaint.status === 'Open' ? 'border-l-accent border-l-4' : ''}`} style={{ borderLeft: complaint.status === 'Open' ? '4px solid var(--accent)' : '1px solid var(--border)' }}>
+                                            <div className="complaint-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem' }}>
+                                                <div>
+                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
+                                                        <span className={`status-badge ${complaint.status === 'Open' ? 'error' : 'success'}`} style={{ backgroundColor: complaint.status === 'Open' ? 'rgba(244, 63, 94, 0.1)' : 'rgba(16, 185, 129, 0.1)', color: complaint.status === 'Open' ? 'var(--accent)' : 'var(--secondary)', padding: '0.2rem 0.5rem', borderRadius: '0.25rem', fontSize: '0.75rem', fontWeight: 'bold' }}>
+                                                            {complaint.status}
+                                                        </span>
+                                                        <h3 style={{ margin: 0, fontSize: '1.1rem' }}>{complaint.type}</h3>
+                                                    </div>
+                                                    <p className="text-muted text-sm" style={{ margin: 0 }}>From: {complaint.userEmail} • {new Date(complaint.date).toLocaleString()}</p>
+                                                    {complaint.resourceTitle !== 'N/A' && (
+                                                        <p className="text-sm" style={{ margin: '0.25rem 0 0', fontWeight: '500' }}>Resource: {complaint.resourceTitle}</p>
+                                                    )}
+                                                </div>
+                                                {complaint.status === 'Open' && (
+                                                    <button
+                                                        className="btn btn-sm btn-outline"
+                                                        onClick={() => resolveComplaint(complaint.id)}
+                                                        style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', borderColor: 'var(--secondary)', color: 'var(--secondary)' }}
+                                                    >
+                                                        <CheckCircle size={14} /> Mark Resolved
+                                                    </button>
+                                                )}
+                                            </div>
+                                            <div className="complaint-body" style={{ backgroundColor: 'var(--background)', padding: '1rem', borderRadius: 'var(--radius-md)' }}>
+                                                <p style={{ margin: 0, whiteSpace: 'pre-wrap' }}>{complaint.description}</p>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            ) : (
+                                <div className="empty-state card" style={{ textAlign: 'center', padding: '4rem 2rem' }}>
+                                    <AlertTriangle size={48} color="var(--text-muted)" className="mb-4 opacity-50 mx-auto" style={{ display: 'block', margin: '0 auto 1rem' }} />
+                                    <h2>No complaints</h2>
+                                    <p className="text-muted">There are zero user complaints at this time. All good!</p>
+                                </div>
+                            )}
+                        </div>
+                    )}
+
                 </div>
             </main>
+
+            {/* Admin Feedback Modal */}
+            {viewingFeedbackFor && (
+                <div className="modal-overlay" onClick={() => setViewingFeedbackFor(null)} style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <div className="modal-content card" onClick={(e) => e.stopPropagation()} style={{ width: '90%', maxWidth: '600px', maxHeight: '80vh', display: 'flex', flexDirection: 'column', backgroundColor: 'white', padding: '2rem', borderRadius: 'var(--radius-xl)' }}>
+                        <div className="modal-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', borderBottom: '1px solid var(--border)', paddingBottom: '1rem', marginBottom: '1.5rem' }}>
+                            <div>
+                                <h3 style={{ margin: '0 0 0.25rem' }}>Feedback & Reviews</h3>
+                                <p className="text-muted" style={{ margin: 0 }}>for {viewingFeedbackFor.title}</p>
+                            </div>
+                            <button className="btn btn-icon btn-outline" onClick={() => setViewingFeedbackFor(null)}><X size={20} /></button>
+                        </div>
+
+                        <div style={{ overflowY: 'auto', flex: 1, paddingRight: '0.5rem' }}>
+                            {viewingFeedbackFor.feedback && viewingFeedbackFor.feedback.length > 0 ? (
+                                <div className="feedback-list" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                                    {viewingFeedbackFor.feedback.map(fb => (
+                                        <div key={fb.id} className="feedback-item" style={{ backgroundColor: 'var(--background)', padding: '1rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--border)' }}>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+                                                <div className="star-rating" style={{ display: 'flex', gap: '2px' }}>
+                                                    {[1, 2, 3, 4, 5].map(star => (
+                                                        <Star
+                                                            key={star}
+                                                            size={16}
+                                                            color={star <= fb.rating ? "#F59E0B" : "var(--border)"}
+                                                            fill={star <= fb.rating ? "#F59E0B" : "none"}
+                                                        />
+                                                    ))}
+                                                </div>
+                                                <span className="text-muted text-sm" style={{ fontWeight: '500' }}>{new Date(fb.date).toLocaleDateString()}</span>
+                                            </div>
+                                            <p style={{ margin: '0 0 0.75rem', fontSize: '0.95rem', lineHeight: '1.5' }}>"{fb.comment}"</p>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--text-muted)' }}>
+                                                <User size={14} />
+                                                <span style={{ fontSize: '0.85rem' }}>{fb.userEmail}</span>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            ) : (
+                                <div style={{ textAlign: 'center', padding: '3rem 0', color: 'var(--text-muted)' }}>
+                                    <MessageSquare size={48} style={{ opacity: 0.3, marginBottom: '1rem', display: 'inline-block' }} />
+                                    <h3 style={{ margin: '0 0 0.5rem', color: 'var(--text-main)' }}>No Feedback Yet</h3>
+                                    <p style={{ margin: 0 }}>There are no reviews for this resource so far.</p>
+                                </div>
+                            )}
+                        </div>
+                        <div style={{ marginTop: '1.5rem', textAlign: 'right', borderTop: '1px solid var(--border)', paddingTop: '1rem' }}>
+                            <button className="btn btn-outline" onClick={() => setViewingFeedbackFor(null)}>Close</button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

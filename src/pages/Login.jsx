@@ -1,12 +1,13 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { BookOpen, User, Lock, ArrowRight } from 'lucide-react';
+import { BookOpen, User, Lock, ArrowRight, Shield } from 'lucide-react';
 import './Login.css';
 
 const LoginPage = () => {
     const navigate = useNavigate();
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
+    const [role, setRole] = useState('student');
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
     const [captchaResult, setCaptchaResult] = useState('');
@@ -53,12 +54,12 @@ const LoginPage = () => {
                 'student5@school.edu': 'student5pass'
             };
 
-            if (adminCredentials[email] && adminCredentials[email] === password) {
+            if (role === 'admin' && adminCredentials[email] && adminCredentials[email] === password) {
                 navigate('/admin');
-            } else if (studentCredentials[email] && studentCredentials[email] === password) {
+            } else if (role === 'student' && studentCredentials[email] && studentCredentials[email] === password) {
                 navigate('/user');
             } else {
-                setError('Invalid credentials. Please check your email and password.');
+                setError('Invalid credentials for the selected role. Please check your email and password.');
                 generateCaptcha();
             }
         }, 1000);
@@ -84,6 +85,23 @@ const LoginPage = () => {
                 {error && <div className="error-message">{error}</div>}
 
                 <form onSubmit={handleLogin} className="login-form">
+                    <div className="input-group">
+                        <label className="input-label" htmlFor="role">Select Role</label>
+                        <div className="input-with-icon">
+                            <Shield size={18} className="input-icon" />
+                            <select
+                                id="role"
+                                className="input-field"
+                                value={role}
+                                onChange={(e) => setRole(e.target.value)}
+                                style={{ appearance: 'auto', cursor: 'pointer' }}
+                            >
+                                <option value="student">Student</option>
+                                <option value="admin">Administrator</option>
+                            </select>
+                        </div>
+                    </div>
+
                     <div className="input-group">
                         <label className="input-label" htmlFor="email">Email Address</label>
                         <div className="input-with-icon">
@@ -149,6 +167,11 @@ const LoginPage = () => {
                             </>
                         )}
                     </button>
+
+                    <div className="login-options">
+                        <a href="#forgot-password" className="login-link" onClick={(e) => e.preventDefault()}>Forgot Password?</a>
+                        <a href="#mfa-register" className="login-link" onClick={(e) => e.preventDefault()}>MFA Register</a>
+                    </div>
                 </form>
             </div>
         </div>
